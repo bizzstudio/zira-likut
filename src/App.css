@@ -1,0 +1,29 @@
+.main {
+  height: fit-content;
+  width: 100%;
+}
+
+
+.t_red {
+  background-color: rgba(176, 8, 8, 0.366);
+}
+
+.t_green {
+  background-color: rgba(19, 176, 8, 0.366);
+}
+
+.t_yalow {
+  background-color: rgba(255, 208, 0, 0.307);
+}
+
+.t_orange {
+  background-color: rgba(255, 200, 0, 0.799);
+}
+
+.t_dark_orange {
+  background-color: rgba(255, 115, 0, 0.863);
+}
+
+.t_light_red {
+  background-color: rgba(255, 0, 0, 0.653);
+}

@@ -1,0 +1,318 @@
+// meshek_Likut_system/src/components/Items/index.jsx
+import React, { useContext, useEffect, useState } from "react";
+import { Table } from "antd";
+import { json, useNavigate } from "react-router-dom";
+import Loader from "../Loader";
+import { languageContext } from "../../App";
+import "./style.css";
+import { getWord } from "../Language";
+import axios from "axios";
+import TabSwitcher from "../TabSwitcher";
+import loginImg from "/loginImg.svg"
+import OrderPreview from "../OrderPreview";
+import BarcodeStockModal from "../BarcodeStockModal";
+import { FiCamera } from "react-icons/fi";
+
+import dayjs from 'dayjs';
+import 'dayjs/locale/he'; // ייבוא תמיכת השפה העברית
+import 'dayjs/locale/en'; // ייבוא תמיכת השפה האנגלית
+
+export default function Items({ orders, loading, setLoading, go }) {
+  const { language } = useContext(languageContext);
+
+  const nav = useNavigate();
+
+  const [data, setData] = useState([]);
+  const [cityNames, setCityNames] = useState(true);
+  const [shippingStatus, setShippingStatus] = useState();
+  const [shippings, setShippings] = useState({
+    selfCollecting: [],
+    deliver: [],
+  });
+  
+  // State for order preview
+  const [previewOrder, setPreviewOrder] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isBarcodeStockOpen, setIsBarcodeStockOpen] = useState(false);
+  const [barcodeEntryMode, setBarcodeEntryMode] = useState("scan");
+
+  useEffect(() => {
+    go();
+  }, []);
+
+  const formatDate = (date) => {
+    const formattedDate = language === 'hebrew'
+      ? dayjs(date).locale('he').format('DD/MM')
+      : dayjs(date).locale('en').format('DD/MM');
+
+    const formattedTime = language === 'hebrew'
+      ? dayjs(date).locale('he').format('HH:mm')
+      : dayjs(date).locale('en').format('HH:mm');
+
+    return (
+      <div className="time">
+        {formattedDate}
+        <br />
+        {formattedTime}
+      </div>
+    );
+  };
+
+
+  const shipment = getWord('shipment')?.props?.children;
+  const selfCollected = getWord('selfCollected')?.props?.children;
+  const orderIsCollected = getWord('orderIsCollected')?.props?.children;
+  const floorWord = getWord('floor')?.props?.children;
+
+  const rowClassName = (record, index) => {
+    if (record?.status?.name === "Likut") {
+      if (record?.actualMelaket?.color) {
+        return ""; // מחזיר מחלקה ריקה כדי לא להחיל שום מחלקת CSS
+      } else {
+        return "t_red";
+      }
+    } else {
+      return "";
+    }
+  };
+
+  const onRowStyle = (orderRaw, rowIndex) => {
+    if (orderRaw?.status?.name === "Likut" && orderRaw?.actualMelaket?.color) {
+      return {
+        style: {
+          backgroundColor: `${orderRaw.actualMelaket.color}66`,
+        },
+      };
+    }
+    return {};
+  };
+
+  const translateText = async (text) => {
+    try {
+      let response = await axios.get(
+        "https://api.mymemory.translated.net/get",
+        {
+          params: {
+            q: text,
+            langpair: "he|en",
+          },
+        }
+      );
+      return (response.data.responseData.translatedText);
+    } catch (error) {
+      console.error("Error translating text:", error);
+    }
+  };
+
+  const columns = [
+    {
+      title: getWord('address'),
+      dataIndex: "city",
+    },
+    {
+      title: getWord('id'),
+      dataIndex: "number",
+      // render: (text) => text.slice(-7), // להציג רק את 7 התווים האחרונים
+    },
+    {
+      title: getWord("total"),
+      dataIndex: "total",
+    },
+    {
+      title: getWord('quantity'),
+      dataIndex: "collected",
+    },
+    {
+      title: getWord('createAt'),
+      dataIndex: "createAt",
+    },
+  ];
+
+  useEffect(() => {
+    if (orders && orders.length > 0) {
+      orders.forEach(async order => {
+        // בניית כתובת מלאה
+        const cityName = language === 'hebrew' ? 
+          order?.user_info?.address?.city?.city_name_he : 
+          order?.user_info?.address?.city?.city_name_en;
+        
+        const street = order?.user_info?.address?.street || '';
+        const houseNumber = order?.user_info?.address?.houseNumber || '';
+        const apartmentNumber = order?.user_info?.address?.apartmentNumber;
+        const floor = order?.user_info?.address?.floor;
+        
+        // בניית הכתובת המלאה
+        let fullAddress = cityName;
+        if (street) fullAddress += `, ${street}`;
+        if (houseNumber) fullAddress += ` ${houseNumber}`;
+        if (apartmentNumber) fullAddress += `/${apartmentNumber}`;
+        // if (floor) fullAddress += `, ${floorWord} ${floor}`;
+        
+        setCityNames(prev => ({ ...prev, [order.invoice]: fullAddress }))
+      })
+
+      setShippings((prev) => ({
+        selfCollecting: [],
+        deliver: orders,
+      }));
+
+      if (sessionStorage.getItem("shippingStatus")) {
+        setShippingStatus(sessionStorage.getItem("shippingStatus"))
+      }
+      else {
+        setShippingStatus('deliver')
+      }
+
+      setLoading(false);
+
+    } else if (orders) {
+      setLoading(false);
+    }
+  }, [orders, language]);
+
+  useEffect(() => {
+    if (shippingStatus) {
+      setData(
+        shippings[shippingStatus]
+          .map((item) => {
+            return {
+              key: item._id,
+              city: cityNames[item.invoice],
+              number: item.invoice,
+              total: item.total,
+              // collected: (sessionStorage.getItem(item.number) ? JSON.parse(sessionStorage.getItem(item.number)).length : '0') + "/" + item.cart.length,
+              collected: item.cart.length,
+              createAt: formatDate(item.createdAt),
+              status: item.status,
+              actualMelaket: item.actualMelaket,
+            };
+          })
+          .sort((a, b) => a.number - b.number)
+      );
+    }
+  }, [shippingStatus, cityNames]);
+
+  console.log('orders: ', orders
+    // ?.map(o => ({ actualMelaket: o.actualMelaket, invoice: o.invoice })).sort((a, b) => a.invoice - b.invoice)
+  );
+
+  const handleRowClick = (record, rowIndex) => {
+    const orderData = orders.find(o => o.invoice === record.number);
+    setPreviewOrder(orderData);
+    setIsPreviewOpen(true);
+  };
+
+  const handleClosePreview = () => {
+    setIsPreviewOpen(false);
+    setPreviewOrder(null);
+  };
+
+  const handleContinueToOrder = () => {
+    if (previewOrder) {
+      const melaketId = previewOrder?.actualMelaket?._id ?? previewOrder?.actualMelaket;
+      const isTakenByOther = previewOrder.status.name === 'Likut' && melaketId && String(melaketId) !== String(localStorage.melaketId);
+      if (!isTakenByOther) {
+        nav("../items/" + previewOrder.invoice);
+      } else {
+        const m = previewOrder.actualMelaket;
+        const melaketName = (language === 'hebrew' ? (m?.heName || m?.name) : (m?.name || m?.heName)) || 'מלקט אחר';
+        alert(`${orderIsCollected} ${melaketName}`);
+      }
+    }
+    handleClosePreview();
+  };
+
+  return (
+    <div className="itemsContainer">
+      {loading ? (
+        <Loader />
+      ) : (
+        <>
+          <div className="w-full border-b border-gray-200 pb-2 pt-1 px-2 from-mainColor-light/20 to-white bg-gradient-to-b">
+            <img src={loginImg} alt="לוגו מערכת ליקוט" className="h-[150px] mx-auto" />
+          </div>
+
+          <div className="sticky top-0 z-10 px-3 py-1.5 border-b border-gray-200 bg-white bg-opacity-90 backdrop-blur-sm">
+            <TabSwitcher
+              tabs={[
+                {
+                  id: 'selfCollecting',
+                  label: `${selfCollected} (${shippings.selfCollecting ? shippings.selfCollecting.length : "0"})`,
+                  content: null
+                },
+                {
+                  id: 'deliver',
+                  label: `${shipment} (${shippings.deliver ? shippings.deliver.length : "0"})`,
+                  content: null
+                }
+              ]}
+              activeTabId={shippingStatus}
+              setActiveTabId={(value) => {
+                sessionStorage.setItem('shippingStatus', value);
+                setShippingStatus(value);
+              }}
+            />
+            {shippingStatus === "selfCollecting" && (
+              <div className="mt-24 w-full flex justify-center pb-8">
+                <div className="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setBarcodeEntryMode("scan"); setIsBarcodeStockOpen(true); }}
+                  className="flex items-center gap-2 rounded-full bg-mainColor px-4 py-2 text-white hover:opacity-90"
+                >
+                  <FiCamera size={18} />
+                  {getWord("scanBarcode")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setBarcodeEntryMode("manual"); setIsBarcodeStockOpen(true); }}
+                  className="flex items-center gap-2 rounded-full border-2 border-mainColor bg-white px-4 py-2 text-mainColor hover:bg-mainColor/10"
+                >
+                  {getWord("manualBarcodeEntry")}
+                </button>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="p-3 pb-20 max-w-[1300px] mx-auto">
+            {data.length > 0 && <Table
+              onRow={(record, rowIndex) => ({
+                onClick: (event) => {
+                  const melaketId = data[rowIndex]?.actualMelaket?._id ?? data[rowIndex]?.actualMelaket;
+                  const isTakenByOther = data[rowIndex].status.name === 'Likut' && melaketId && String(melaketId) !== String(localStorage.melaketId);
+                  if (!isTakenByOther) {
+                    handleRowClick(record, rowIndex);
+                  } else {
+                    const m = record.actualMelaket;
+                    const melaketName = (language === 'hebrew' ? (m?.heName || m?.name) : (m?.name || m?.heName)) || 'מלקט אחר';
+                    alert(`${orderIsCollected} ${melaketName}`);
+                  }
+                },
+                ...onRowStyle(record, rowIndex)
+              })}
+              pagination={false}
+              bordered={true}
+              dataSource={data}
+              columns={columns}
+              rowClassName={rowClassName}
+            />}
+          </div>
+
+          <OrderPreview
+            order={previewOrder}
+            isOpen={isPreviewOpen}
+            onClose={handleClosePreview}
+            onContinueToOrder={handleContinueToOrder}
+          />
+
+          <BarcodeStockModal
+            isOpen={isBarcodeStockOpen}
+            onClose={() => setIsBarcodeStockOpen(false)}
+            onSuccess={() => setIsBarcodeStockOpen(false)}
+            entryMode={barcodeEntryMode}
+          />
+        </>
+      )}
+    </div>
+  );
+};

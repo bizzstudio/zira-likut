@@ -1,0 +1,27 @@
+.lan {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    width: fit-content;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.339);
+    border-radius: 10px;
+}
+
+.deButton {
+    padding: 8px 10px;
+    height: 40px;
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    width: 100%;
+    border-radius: 5px;
+    font-weight: bold;
+    box-shadow: 2px 2px #0000002e;
+}

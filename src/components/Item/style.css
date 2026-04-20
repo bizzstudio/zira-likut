@@ -1,0 +1,54 @@
+.statuswrap {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    margin: 10px 0px;
+    align-content: space-between;
+    justify-content: center;
+    align-items: center;
+}
+
+.titleststus {
+    width: 100%;
+    text-align: center;
+    font-size: 21px;
+    padding-bottom: 10px;
+}
+
+.text_red {
+    color: red;
+    font-weight: 900;
+}
+
+.enabled-select .ant-select-selector {
+    border-color: green !important;
+}
+
+.disabled-select .ant-select-selector {
+    border-color: initial;
+}
+
+.numOfBoxes {
+    position: relative;
+    border-radius: 1000px;
+    font-weight: bold;
+    font-size: 16px;
+    padding: 7px 11px 7px 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.numOfBoxes:focus-within {
+    transition: 0.3s ease-in-out;
+    outline: 1px solid var(--main-color);
+}
+
+.numOfBoxes input {
+    border: none;
+    outline: none;
+    /* max-width: 100px; */
+    width: min-content;
+    background-color: transparent;
+}

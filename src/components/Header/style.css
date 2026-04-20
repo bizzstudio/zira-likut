@@ -1,0 +1,46 @@
+.relative {
+    position: relative;
+}
+
+.btns {
+    display: flex;
+    gap: 20px;
+}
+
+.deButton2 {
+    border: none;
+    color: #fff;
+    border-radius: 50%;
+    font-weight: bold;
+    width: 37px;
+    height: 37px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.deButton3 {
+    font-size: 20px;
+    font-family: 'Assistant';
+    font-weight: 400;
+    text-decoration: underline;
+    background: #fff;
+    border: none;
+}
+
+.headerBtn {
+    border: none;
+    color: #fff;
+    border-radius: 1000px;
+    font-weight: bold;
+    font-size: 16px;
+    padding: 10px 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.headerBtn:disabled{
+    opacity: 0.5;
+}
