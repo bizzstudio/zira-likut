@@ -8,10 +8,10 @@ const config = {
         extend: {
             colors: {
                 mainColor: {
-                    superLight: 'rgb(235, 240, 255)',
-                    light: '#7c9cf5',
-                    DEFAULT: '#3d5fd0',
-                    dark: '#2d45a0',
+                    superLight: 'rgb(252, 242, 244)',
+                    light: '#a34a62',
+                    DEFAULT: '#490f17',
+                    dark: '#2d080c',
                 },
             },
             fontFamily: {
