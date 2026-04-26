@@ -1,7 +1,7 @@
 // meshek_Likut_system/src/components/Items/index.jsx
 import React, { useContext, useEffect, useState } from "react";
 import { Table } from "antd";
-import { json, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Loader from "../Loader";
 import { languageContext } from "../../App";
 import "./style.css";
@@ -9,6 +9,8 @@ import { getWord } from "../Language";
 import axios from "axios";
 import TabSwitcher from "../TabSwitcher";
 import loginImg from "/loginImg.svg"
+import { getAppScopeId, isSupplierSession } from "../../utils/sessionScope";
+import { supplierCartSubtotal } from "../../utils/supplierCartTotal";
 import OrderPreview from "../OrderPreview";
 import BarcodeStockModal from "../BarcodeStockModal";
 import { FiCamera } from "react-icons/fi";
@@ -23,7 +25,7 @@ export default function Items({ orders, loading, setLoading, go }) {
   const nav = useNavigate();
 
   const [data, setData] = useState([]);
-  const [cityNames, setCityNames] = useState(true);
+  const [cityNames, setCityNames] = useState({});
   const [shippingStatus, setShippingStatus] = useState();
   const [shippings, setShippings] = useState({
     selfCollecting: [],
@@ -35,10 +37,6 @@ export default function Items({ orders, loading, setLoading, go }) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isBarcodeStockOpen, setIsBarcodeStockOpen] = useState(false);
   const [barcodeEntryMode, setBarcodeEntryMode] = useState("scan");
-
-  useEffect(() => {
-    go();
-  }, []);
 
   const formatDate = (date) => {
     const formattedDate = language === 'hebrew'
@@ -117,6 +115,11 @@ export default function Items({ orders, loading, setLoading, go }) {
     {
       title: getWord("total"),
       dataIndex: "total",
+      render: (value) => {
+        if (!isSupplierSession()) return value;
+        const n = Number(value);
+        return `₪${Number.isFinite(n) ? n.toFixed(2) : "0.00"}`;
+      },
     },
     {
       title: getWord('quantity'),
@@ -166,6 +169,8 @@ export default function Items({ orders, loading, setLoading, go }) {
       setLoading(false);
 
     } else if (orders) {
+      setShippings({ selfCollecting: [], deliver: [] });
+      setData([]);
       setLoading(false);
     }
   }, [orders, language]);
@@ -179,7 +184,9 @@ export default function Items({ orders, loading, setLoading, go }) {
               key: item._id,
               city: cityNames[item.invoice],
               number: item.invoice,
-              total: item.total,
+              total: isSupplierSession()
+                ? supplierCartSubtotal(item.cart)
+                : item.total,
               // collected: (sessionStorage.getItem(item.number) ? JSON.parse(sessionStorage.getItem(item.number)).length : '0') + "/" + item.cart.length,
               collected: item.cart.length,
               createAt: formatDate(item.createdAt),
@@ -190,7 +197,7 @@ export default function Items({ orders, loading, setLoading, go }) {
           .sort((a, b) => a.number - b.number)
       );
     }
-  }, [shippingStatus, cityNames]);
+  }, [shippingStatus, cityNames, shippings]);
 
   console.log('orders: ', orders
     // ?.map(o => ({ actualMelaket: o.actualMelaket, invoice: o.invoice })).sort((a, b) => a.invoice - b.invoice)
@@ -210,7 +217,13 @@ export default function Items({ orders, loading, setLoading, go }) {
   const handleContinueToOrder = () => {
     if (previewOrder) {
       const melaketId = previewOrder?.actualMelaket?._id ?? previewOrder?.actualMelaket;
-      const isTakenByOther = previewOrder.status.name === 'Likut' && melaketId && String(melaketId) !== String(localStorage.melaketId);
+      const scope = getAppScopeId();
+      const isTakenByOther =
+        !isSupplierSession() &&
+        previewOrder.status.name === "Likut" &&
+        melaketId &&
+        scope &&
+        String(melaketId) !== String(scope);
       if (!isTakenByOther) {
         nav("../items/" + previewOrder.invoice);
       } else {
@@ -279,7 +292,13 @@ export default function Items({ orders, loading, setLoading, go }) {
               onRow={(record, rowIndex) => ({
                 onClick: (event) => {
                   const melaketId = data[rowIndex]?.actualMelaket?._id ?? data[rowIndex]?.actualMelaket;
-                  const isTakenByOther = data[rowIndex].status.name === 'Likut' && melaketId && String(melaketId) !== String(localStorage.melaketId);
+                  const scope = getAppScopeId();
+                  const isTakenByOther =
+                    !isSupplierSession() &&
+                    data[rowIndex].status.name === "Likut" &&
+                    melaketId &&
+                    scope &&
+                    String(melaketId) !== String(scope);
                   if (!isTakenByOther) {
                     handleRowClick(record, rowIndex);
                   } else {

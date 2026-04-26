@@ -12,6 +12,7 @@ import { PiTranslateBold } from "react-icons/pi";
 import { TbUserX } from "react-icons/tb";
 import DropdownMenu from "../menu/DropdownMenu";
 import { IoLanguage } from "react-icons/io5";
+import { clearLoginScope } from "../../utils/sessionScope";
 
 export default function Header({ id, go, setLoading, loading, orders = [] }) {
   const { language, setLanguage } = useContext(languageContext);
@@ -101,6 +102,7 @@ export default function Header({ id, go, setLoading, loading, orders = [] }) {
       const confirmed = confirm(logOutConfirm.props.children);
       if (confirmed) {
         localStorage.removeItem("token");
+        clearLoginScope();
         nav("../login");
       }
     } catch (error) {

@@ -14,6 +14,20 @@ import { FaXmark } from "react-icons/fa6";
 import spinnerLoadingImage from "/spinner.gif";
 import dayjs from "dayjs";
 import loginImg from "/loginImg.svg"
+import { scopeOrderForMelaket } from "../../utils/melaketOrders";
+import { getAppScopeId, getAppScopeIds, isSupplierSession } from "../../utils/sessionScope";
+
+function orderScopeParams() {
+  const p = {};
+  if (isSupplierSession()) {
+    const s = localStorage.getItem("supplierId");
+    if (s) p.supplierId = s;
+  } else {
+    const m = localStorage.getItem("melaketId");
+    if (m) p.melaketId = m;
+  }
+  return p;
+}
 
 export default function Item({ setOrders, orders, setUpdateOrders, setId, loading, setLoading }) {
   const numberOfOrder = useParams();
@@ -68,9 +82,19 @@ export default function Item({ setOrders, orders, setUpdateOrders, setId, loadin
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
+            params: orderScopeParams(),
           }
         );
-        setOrder(response.data);
+        if (isSupplierSession()) {
+          setOrder(response.data);
+        } else {
+          const scopeIds = getAppScopeIds();
+          setOrder(
+            scopeIds.length
+              ? scopeOrderForMelaket(response.data, scopeIds)
+              : response.data
+          );
+        }
       } catch (error) {
         console.error("Error fetching order:", error);
         alert(words.orderNotFound.props.children);
@@ -369,7 +393,13 @@ export default function Item({ setOrders, orders, setUpdateOrders, setId, loadin
           }
         ))().catch(err => {
           setLoading(false);
-          if (order.actualMelaket?._id !== localStorage.melaketId) {
+          const scope = getAppScopeId();
+          if (
+            !isSupplierSession() &&
+            scope &&
+            order.actualMelaket?._id != null &&
+            String(order.actualMelaket._id) !== String(scope)
+          ) {
             const msgToAlert = orderAlreadyTaken.props.children;
             alert(msgToAlert);
             nav("../items");
@@ -497,12 +527,9 @@ export default function Item({ setOrders, orders, setUpdateOrders, setId, loadin
     // 1) חסימה מיידית אם כבר בתהליך
     if (submiting) return;
 
-    const melaketId = localStorage.getItem("melaketId");
-    if (!melaketId) {
-      localStorage.removeItem("token");
-      nav("/login");
-      return;
-    }
+    const melaketStatusId = isSupplierSession()
+      ? ""
+      : String(localStorage.getItem("melaketId") || "");
 
     // בדיקה שכל הצ'קבוקסים מסומנים
     const allItemsMarked = order?.cart?.every((item) => markedItems[item._id != null ? String(item._id) : item._id] === true);
@@ -519,12 +546,15 @@ export default function Item({ setOrders, orders, setUpdateOrders, setId, loadin
     setSubmiting(true);
 
     try {
-      const fullValue = statuses.find((status) => status._id === melaketId);
+      const fullValue = melaketStatusId
+        ? statuses.find((status) => String(status._id) === String(melaketStatusId))
+        : undefined;
 
       // בדיקה שההזמנה לא נמצאת כבר בסטטוס מלקט אחר
       const isOrderAlreadyTaken = await axios
         .get(`${import.meta.env.VITE_MAIN_SERVER_URL}/app/orders/${order._id}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          params: orderScopeParams(),
         })
         .then((res) => {
           if (
@@ -576,7 +606,7 @@ export default function Item({ setOrders, orders, setUpdateOrders, setId, loadin
           source_city: "מושב קדרון",
           source_street: "הרימון",
           source_number: "12",
-          source_recipient_name: "MNM",
+          source_recipient_name: "הזירה",
           source_phone: "0586692614",
           destination_city: order?.user_info?.address?.city?.city_name_he,
           destination_street: order?.user_info?.address?.street,

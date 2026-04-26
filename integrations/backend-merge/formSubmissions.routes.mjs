@@ -2,7 +2,7 @@
  * מיזוג לבקאנד (פורט 3028)
  *
  * לפני שימוש:
- * 1) העתק את כל תיקיית `mnm-likut/shared/` לשורש הבקאנד כ־`shared/` (ליד `src/` או ליד `package.json`).
+ * 1) העתק את כל תיקיית `zira-likut/shared/` לשורש הבקאנד כ־`shared/` (ליד `src/` או ליד `package.json`).
  * 2) העתק את `FormSubmission.model.js` לתיקיית המודלים שלך והוסף ל־mongoose.
  * 3) שמור קובץ זה כ־`src/routes/formSubmissions.routes.mjs` (או התאם נתיבי import למטה).
  * 4) בקובץ הראשי של השרת:

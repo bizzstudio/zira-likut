@@ -6,6 +6,9 @@ import react from "@vitejs/plugin-react";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/** בפיתוח: אם VITE_MAIN_SERVER_URL=/api — הבקשות עוברות דרך Vite ולא נתקעות על CORS מול 3028 */
+const DEV_API_TARGET = process.env.VITE_DEV_API_PROXY || "http://localhost:3028";
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -23,6 +26,12 @@ export default defineConfig({
 
   server: {
     historyApiFallback: true,
+    proxy: {
+      "/api": {
+        target: DEV_API_TARGET,
+        changeOrigin: true,
+      },
+    },
   },
 
   define: {

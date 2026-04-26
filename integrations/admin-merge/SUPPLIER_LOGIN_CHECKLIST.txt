@@ -1,0 +1,27 @@
+רשימת בדיקה — התחברות ספק מאפליקציית הליקוט (מול האדמין)
+============================================================
+
+האדמין המלא (עמוד "ספקים") לא נמצא במאגר zira-likut; יש להשוות ידנית מול קוד הבקאנד/האדמין שלכם.
+
+1) אותו שרת?
+   - הליקוט קורא ל־VITE_MAIN_SERVER_URL (למשל http://localhost:3028/api).
+   - ודאו שהספק נשמר ב־Mongo/DB שאליו מצביע השרת הזה, לא רק בסביבת production אחרת.
+
+2) שדה טלפון במודל Supplier
+   - בקוד המיזוג appLogin.routes.mjs מחפשים כבר במספר שדות: phone, contactPhone, mobile, phoneNumber, tel.
+   - אם אצלכם השדה נקרא אחרת (למשל contactMobile), העבירו ב־registerUnifiedAppLogin:
+     supplierPhoneFields: ["השדה_שלכם", "phone"]
+
+3) שדה סיסמה
+   - ברירת מחדל: password (עם select: false + select("+password") בחיפוש).
+   - אם הסיסמה נשמרת בשם אחר (passwordHash, pass), הוסיפו בשרת supplierPasswordField או הרחיבו את ה־schema/select בהתאם.
+
+4) סיסמה גלויה מול bcrypt
+   - המיזוג משווה טקסט גולמי או bcrypt ($2…).
+   - אם באדמין נשמר hash בשיטה אחרת (argon2 וכו׳), צריך comparePassword מותאם ב־opts.
+
+5) נתיב התחברות שונה?
+   - בפרונט אפשר VITE_APP_LOGIN_FALLBACK_URL — ניסיון שני אחרי 401 מהנתיב הראשי (רק אם מוגדר).
+
+6) תגובת JSON
+   - הפרונט מקבל token מ־token | accessToken | jwt, ומאחד שדות מתוך data / user / result.

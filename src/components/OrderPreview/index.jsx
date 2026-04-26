@@ -8,6 +8,7 @@ import logo from "../../../public/logo.jpeg";
 import axios from "axios";
 import BarcodeScanner from "../BarcodeScanner";
 import { FaTimes, FaCheckCircle, FaBarcode, FaCamera } from "react-icons/fa";
+import { getAppScopeId, isSupplierSession } from "../../utils/sessionScope";
 
 export default function OrderPreview({ order, isOpen, onClose, onContinueToOrder }) {
     const { language } = useContext(languageContext);
@@ -201,7 +202,13 @@ export default function OrderPreview({ order, isOpen, onClose, onContinueToOrder
 
     const handleContinueToOrder = () => {
         const melaketId = order?.actualMelaket?._id ?? order?.actualMelaket;
-        const isTakenByOther = order.status.name === 'Likut' && melaketId && String(melaketId) !== String(localStorage.melaketId);
+        const scope = getAppScopeId();
+        const isTakenByOther =
+          !isSupplierSession() &&
+          order.status.name === "Likut" &&
+          melaketId &&
+          scope &&
+          String(melaketId) !== String(scope);
         if (!isTakenByOther) {
             onContinueToOrder();
         } else {

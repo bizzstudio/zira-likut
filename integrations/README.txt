@@ -4,7 +4,7 @@
 א. העתקת schema משותף לבקאנד
 ----------------------------
 העתק את כל התיקייה:
-  mnm-likut/shared/
+  zira-likut/shared/
 אל שורש פרויקט הבקאנד (ליד src), כך שייווצר:
   <BACKEND>/shared/forms/...
   <BACKEND>/shared/pdf/...
@@ -15,13 +15,34 @@
 1) העתק מ־integrations/backend-merge/:
    - FormSubmission.model.js  →  למודלים (mongoose)
    - formSubmissions.routes.mjs  →  ל־src/routes/
+   - appLogin.routes.mjs  →  ל־src/routes/ (התחברות אפליקציית ליקוט)
 
-2) ב־mnm-backend: ודא שקיימים models/FormSubmission.js, routes/appFormRoutes.js,
+1א) התחברות POST /api/app/login — מלקטים + ספקים (עמוד ספקים באדמין)
+   לפני הרשמה: הסר או עטוף את ה־handler הקיים ל־/api/app/login כדי שלא יירשמו שני route-ים.
+   דוגמה (אחרי app.use(express.json())):
+     import { registerUnifiedAppLogin } from "./routes/appLogin.routes.mjs";
+     registerUnifiedAppLogin(app, {
+       MelaketModel: Melaket,           // שם המודל שלך למלקטים
+       SupplierModel: Supplier,       // שם המודל של הספקים (אותו DB כמו האדמין)
+       signAppToken: (doc, role) => jwt.sign(
+         { melaketId: String(doc._id), supplierId: role === "supplier" ? String(doc._id) : undefined, role },
+         process.env.JWT_SECRET,
+         { expiresIn: "7d" }
+       ),
+     });
+   הסיסמה: אם ב־DB יש bcrypt ($2…) — מתבצע compare; אחרת השוואה לטקסט גולמי (כמו סיסמה באדמין).
+   שדות טלפון: ברירת מחדל phone — אם אצלך שם אחר, העבר melaketPhoneField / supplierPhoneField,
+   או מערכים melaketPhoneFields / supplierPhoneFields (כמה שמות שדות לחיפוש $or).
+   רשימת בדיקה מול האדמין: integrations/admin-merge/SUPPLIER_LOGIN_CHECKLIST.txt
+
+   בפרונט ליקוט (אופציונלי): VITE_APP_LOGIN_FALLBACK_URL — נתיב נוסף אם /app/login מחזיר 401 (למשל נתיב התחברות ספקים קיים).
+
+2) בפרויקט הבקאנד של הזירה: ודא שקיימים models/FormSubmission.js, routes/appFormRoutes.js,
    routes/adminFormRoutes.js — והעתקה של shared/ לשורש הבקאנד (עם shared/package.json type:module).
 
 3) ב־formSubmissionController נבדק formCode מול shared/forms/registry (ייבוא דינמי).
 
-4) בפרויקט mnm-backend הנתיבים כבר קיימים תחת /api:
+4) בפרויקט הבקאנד של הזירה הנתיבים כבר קיימים תחת /api:
    POST /api/app/forms/submissions   (אימות isApp — כמו ליקוט)
    GET  /api/admin/forms/submissions  (isAdmin)
    GET  /api/admin/forms/submissions/:id/pdf
@@ -45,8 +66,12 @@
 
 ד. ליקוט (Vite)
 ---------------
-ב־.env ודא שהכתובת כוללת את קידומת ה־API של הבקאנד (כמו בשאר הקריאות — login, orders):
-  VITE_MAIN_SERVER_URL=http://localhost:3028/api
+בפיתוח (npm run dev): מומלץ לעקוף CORS ולמנוע בקשות login תלויות (pending):
+  VITE_MAIN_SERVER_URL=/api
+  (ב־vite.config.js יש proxy מ־/api ל־http://localhost:3028 — כמו admin-forms.)
+
+בפרודקשן / בדיקה מול שרת מרוחק:
+  VITE_MAIN_SERVER_URL=https://your-host.example/api
 
 
 ה. העתקה אוטומטית לפרויקטים אחרים

@@ -7,6 +7,7 @@ import { buildEmptyFormState } from "@shared/forms/buildEmptyFormState.js";
 import { validateFormSubmission } from "@shared/forms/validateFormSubmission.js";
 import { getWordString } from "../Language";
 import SignaturePad from "./SignaturePad";
+import { getAppScopeId } from "../../utils/sessionScope";
 
 const BASE = import.meta.env.VITE_MAIN_SERVER_URL || "";
 
@@ -437,7 +438,7 @@ export default function DynamicForm({ formCode }) {
         schema,
         state,
         sig,
-        localStorage.getItem("melaketId") || null
+        getAppScopeId() || null
       );
       await axios.post(`${BASE}/app/forms/submissions`, payload, {
         headers: { Authorization: `Bearer ${token}` },

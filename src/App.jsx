@@ -11,6 +11,7 @@ import Header from "./components/Header";
 import FormT01 from "./components/forms/FormT01";
 import FormT03 from "./components/forms/FormT03";
 import FormT02 from "./components/forms/FormT02";
+import { clearLoginScope, isSupplierSession } from "./utils/sessionScope";
 
 export const languageContext = createContext()
 function App() {
@@ -28,38 +29,71 @@ function App() {
     try {
       let token = localStorage.getItem("token");
       if (!token) return nav('/login');
-      let melaketId = localStorage.getItem("melaketId");
-      if (!melaketId) {
-        return localStorage.removeItem("token"), nav('/login');
-      }
-      
+
       // בדיקה אם יש query parameter של getAll=true ב-URL
       const urlParams = new URLSearchParams(window.location.search);
       const getAll = urlParams.get('getAll') === 'true';
       
-      // בניית URL עם query parameter אם נדרש
-      const apiUrl = getAll 
-        ? `${import.meta.env.VITE_MAIN_SERVER_URL}/app/orders?getAll=true`
-        : `${import.meta.env.VITE_MAIN_SERVER_URL}/app/orders`;
-      
+      // בניית URL: הספק מקבל רק supplierId; המלקט רק melaketId — לא לאחד (השרת מסנן לפי JWT; הפרמטרים אופציונליים)
+      const base = import.meta.env.VITE_MAIN_SERVER_URL;
+      const params = new URLSearchParams();
+      if (getAll) params.set("getAll", "true");
+      else if (isSupplierSession()) {
+        const sid = localStorage.getItem("supplierId");
+        if (sid) params.set("supplierId", sid);
+      } else {
+        const mid = localStorage.getItem("melaketId");
+        if (mid) params.set("melaketId", mid);
+      }
+      const qs = params.toString();
+      const apiUrl = `${base}/app/orders${qs ? `?${qs}` : ""}`;
+
       const res = await axios.get(apiUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log('res.data: ', res.data);
-      // מציגים הזמנות בליקוט או בהעברה לליקוט (לא "בטיפול" בלבד)
       const allOrders = res?.data?.orders ?? [];
+      const first = allOrders[0];
+      console.log("[Likut] raw /app/orders (לפני כל סינון בפרונט)", {
+        count: allOrders.length,
+        responseKeys: res?.data != null ? Object.keys(res.data) : [],
+        sample: first
+          ? {
+              invoice: first.invoice,
+              statusName: first.status?.name,
+              cartLines: Array.isArray(first.cart) ? first.cart.length : 0,
+            }
+          : null,
+      });
+
+      const bypassClientFilters =
+        import.meta.env.VITE_APP_ORDERS_RAW === "1" ||
+        urlParams.get("rawOrders") === "1";
+      if (bypassClientFilters) {
+        console.warn(
+          "[Likut] מצב אבחון: מציגים את מערך ההזמנות מהשרת כמו שהוא (ללא סינון סטטוס/ספק בפרונט). הסירי ?rawOrders=1 או VITE_APP_ORDERS_RAW כשמסיימים."
+        );
+        setOrders(allOrders);
+        return;
+      }
+
+      // הבקאנד מחזיר Processing + Likut. מלקט חייב לראות גם Processing (בריכה לפני ליקוט) — לא רק Likut.
       const forLikut = allOrders.filter((o) => {
         const name = o?.status?.name;
-        return name === "Likut" || (name && /^TransferToLikut$/i.test(name));
+        if (!name) return false;
+        const lower = String(name).toLowerCase();
+        if (lower === "likut" || /^transfertolikut$/i.test(String(name))) return true;
+        if (lower === "processing" || lower === "pending") return true;
+        return false;
       });
+      // ספק: cart כבר מסונן ב־backend — לא scopeOrderForMelaket בפרונט. מלקט: forLikut כמו שהשרת החזיר (עם scopeOrderForMelaket ב־Item אם נדרש).
       setOrders(forLikut);
     } catch (error) {
       // if error is 401 navigate to login
-      if (error.response.status === 401) {
+      if (error.response?.status === 401) {
         localStorage.removeItem("token");
-        localStorage.removeItem("melaketId");
+        clearLoginScope();
         nav('/login');
       }
       console.error("Failed to fetch orders", error);
