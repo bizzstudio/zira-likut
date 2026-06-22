@@ -95,8 +95,15 @@ function App() {
         localStorage.removeItem("token");
         clearLoginScope();
         nav('/login');
+      } else {
+        // כל כשל אחר (רשת/CORS/500): לא להשאיר את המסך תקוע על "טוען הזמנות".
+        // setOrders למערך ריק כדי שה-Loader ייעלם ויוצג מצב ריק במקום ספינר אינסופי.
+        setOrders([]);
       }
       console.error("Failed to fetch orders", error);
+    } finally {
+      // בכל מקרה לעצור את מצב הטעינה כדי למנוע ספינר נצחי כשהבקשה נכשלת.
+      setLoading(false);
     }
   };
 
