@@ -4,7 +4,7 @@ import { Table } from "antd";
 import { useNavigate } from "react-router-dom";
 import { languageContext } from "../../App";
 import { getWord, getWordString } from "../Language";
-import logo from "../../../public/logo.jpeg";
+import logo from "../../../public/logo.png";
 import axios from "axios";
 import BarcodeScanner from "../BarcodeScanner";
 import { FaTimes, FaCheckCircle, FaBarcode, FaCamera } from "react-icons/fa";

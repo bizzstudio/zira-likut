@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Select, Table } from "antd";
 import Loader from "../Loader";
 import axios from "axios";
-import logo from "../../../public/logo.jpeg";
+import logo from "../../../public/logo.png";
 import { languageContext } from "../../App";
 import "./style.css";
 import { getWord, getWordString } from "../Language";
